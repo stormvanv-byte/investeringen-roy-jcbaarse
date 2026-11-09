@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto-investeringen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Inloggen -->
+  <main id="login-view" class="login" hidden>
+    <form id="login-form" class="card login-card">
+      <h1>Auto-investeringen</h1>
+      <p class="muted">Log in om je investeringen te bekijken.</p>
+      <label>E-mail<input type="email" name="email" required autocomplete="username"></label>
+      <label>Wachtwoord<input type="password" name="password" required autocomplete="current-password"></label>
+      <button type="submit" class="btn primary">Inloggen</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </main>
+
+  <!-- App -->
+  <div id="app-view" hidden>
+    <header class="topbar">
+      <div class="wrap topbar-inner">
+        <h1>Auto-investeringen</h1>
+        <div class="topbar-actions">
+          <span id="demo-badge" class="badge" hidden title="Supabase is nog niet ingesteld in config.js">Demo-modus</span>
+          <button id="logout-btn" class="btn ghost" hidden>Uitloggen</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="kpis">
+        <div class="kpi total">
+          <span class="kpi-label">Geld bij <span class="partner">Roy</span></span>
+          <span class="kpi-value" id="kpi-total">€ 0</span>
+          <span class="kpi-sub" id="kpi-total-sub">gestort + winst</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Cash bij <span class="partner">Roy</span></span>
+          <span class="kpi-value" id="kpi-cash">€ 0</span>
+          <span class="kpi-sub" id="kpi-cash-sub">nog niet in een auto</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Waarde in auto's</span>
+          <span class="kpi-value" id="kpi-stock">€ 0</span>
+          <span class="kpi-sub" id="kpi-stock-sub">0 auto's op voorraad</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Winst (mijn deel)</span>
+          <span class="kpi-value" id="kpi-profit">€ 0</span>
+          <span class="kpi-sub" id="kpi-profit-sub">0 auto's verkocht</span>
+        </div>
+      </section>
+
+      <div class="split" aria-hidden="true"><div id="split-cash"></div><div id="split-stock"></div></div>
+
+      <section class="actions">
+        <button class="btn primary" id="add-car-btn">+ Auto gekocht</button>
+        <button class="btn" id="add-cash-btn">Geld storten / opnemen</button>
+      </section>
+
+      <nav class="tabs" role="tablist">
+        <button role="tab" class="tab active" data-tab="stock">Voorraad <span class="count" id="count-stock">0</span></button>
+        <button role="tab" class="tab" data-tab="sold">Verkocht <span class="count" id="count-sold">0</span></button>
+        <button role="tab" class="tab" data-tab="cash">Kas <span class="count" id="count-cash">0</span></button>
+      </nav>
+
+      <section class="panel" id="panel-stock">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Auto</th><th>Gekocht op</th><th class="num">Aankoop</th><th class="num">Kosten</th><th class="num">Totaal</th><th class="num">Dagen</th><th></th></tr></thead>
+          <tbody id="stock-body"></tbody>
+        </table></div>
+        <p class="empty" id="stock-empty">Nog geen auto's op voorraad. Klik op "+ Auto gekocht".</p>
+      </section>
+
+      <section class="panel" id="panel-sold" hidden>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Auto</th><th>Gekocht op</th><th>Verkocht op</th><th class="num">Bedrag</th><th class="num">Winst mijn deel</th><th class="num">Totaal terug</th><th class="num">Dagen</th><th></th></tr></thead>
+          <tbody id="sold-body"></tbody>
+        </table></div>
+        <p class="empty" id="sold-empty">Nog geen auto's verkocht.</p>
+      </section>
+
+      <section class="panel" id="panel-cash" hidden>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Datum</th><th>Omschrijving</th><th class="num">Bedrag</th><th></th></tr></thead>
+          <tbody id="cash-body"></tbody>
+        </table></div>
+        <p class="empty" id="cash-empty">Nog geen stortingen of opnames. Begin met het storten van je inleg.</p>
+        <p class="muted small" id="cash-note"></p>
+      </section>
+    </main>
+  </div>
+
+  <!-- Auto toevoegen / bewerken -->
+  <dialog id="car-dialog">
+    <form method="dialog" id="car-form" class="form">
+      <h2 id="car-dialog-title">Auto gekocht</h2>
+      <div class="grid2">
+        <label>Merk<input name="merk" required placeholder="Volkswagen"></label>
+        <label>Model<input name="model" required placeholder="Golf 1.5 TSI"></label>
+        <label>Bouwjaar<input name="bouwjaar" type="number" min="1900" max="2100" placeholder="2019"></label>
+        <label>Kenteken<input name="kenteken" placeholder="AB-123-C"></label>
+        <label>Aankoopdatum<input name="aankoopdatum" type="date" required></label>
+        <label>Aankoopprijs (€)<input name="aankoopprijs" type="number" step="0.01" min="0" required></label>
+        <label>Extra kosten (€)<input name="kosten" type="number" step="0.01" min="0" value="0"><small>alleen als jij die hebt betaald</small></label>
+        <label>Inruil<input name="inruil" placeholder="Geen"></label>
+      </div>
+      <fieldset id="sale-fields" hidden>
+        <legend>Verkoop</legend>
+        <div class="grid2">
+          <label>Verkoopdatum<input name="verkoopdatum" type="date"><small>leeg = staat nog te koop</small></label>
+          <label>Winst mijn deel (€)<input name="winst_deel" type="number" step="0.01"><small>leeg = nog te bepalen</small></label>
+        </div>
+      </fieldset>
+      <label>Notities<textarea name="notities" rows="2"></textarea></label>
+      <p class="error" id="car-error" hidden></p>
+      <div class="form-actions">
+        <button type="button" class="btn danger ghost" id="car-delete" hidden>Verwijderen</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>Annuleren</button>
+        <button type="submit" class="btn primary">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Auto verkopen -->
+  <dialog id="sell-dialog">
+    <form method="dialog" id="sell-form" class="form">
+      <h2>Auto verkocht</h2>
+      <p class="muted" id="sell-car-name"></p>
+      <div class="grid2">
+        <label>Verkoopdatum<input name="verkoopdatum" type="date" required></label>
+        <label>Winst mijn deel (€)<input name="winst_deel" type="number" step="0.01"><small>leeg laten als nog niet bekend</small></label>
+      </div>
+      <p class="preview" id="sell-preview"></p>
+      <p class="error" id="sell-error" hidden></p>
+      <div class="form-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>Annuleren</button>
+        <button type="submit" class="btn primary">Verkoop opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Storten / opnemen -->
+  <dialog id="cash-dialog">
+    <form method="dialog" id="cash-form" class="form">
+      <h2>Geld storten / opnemen</h2>
+      <div class="segmented">
+        <label><input type="radio" name="soort" value="storting" checked><span>Storting (inleg)</span></label>
+        <label><input type="radio" name="soort" value="opname"><span>Opname</span></label>
+      </div>
+      <div class="grid2">
+        <label>Datum<input name="datum" type="date" required></label>
+        <label>Bedrag (€)<input name="bedrag" type="number" step="0.01" min="0.01" required></label>
+      </div>
+      <label>Omschrijving<input name="omschrijving" placeholder="Bijv. startkapitaal"></label>
+      <p class="error" id="cash-error" hidden></p>
+      <div class="form-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost" data-close>Annuleren</button>
+        <button type="submit" class="btn primary">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
